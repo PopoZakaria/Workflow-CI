@@ -11,9 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 1️⃣ Checkout repo
     - name: Checkout Repository
       uses: actions/checkout@v3
 
+    # 2️⃣ Setup conda environment
     - name: Setup Miniconda
       uses: conda-incubator/setup-miniconda@v2
       with:
@@ -21,48 +23,62 @@ jobs:
         environment-file: MLProject/conda.yaml
         auto-activate-base: false
 
+    # 3️⃣ Install MLflow
     - name: Install MLflow
       run: |
         pip install mlflow
 
+    # 4️⃣ Run MLflow project
     - name: Run MLflow Project
       run: |
         cd MLProject
         mlflow run . --env-manager=local
-        
+
+    # 5️⃣ Install Git LFS
     - name: Install Git LFS
       run: |
         sudo apt-get update && sudo apt-get install -y git-lfs
         git lfs install
 
+    # 6️⃣ Copy model artifact
     - name: Copy artifact model to saved_model
       run: |
         mkdir -p MLProject/saved_model
         cp MLProject/random_forest_model.pkl MLProject/saved_model/
 
-    - name: Commit artifact ke github (LFS)
+    # 7️⃣ Commit & push model artifact ke GitHub (LFS)
+    - name: Commit artifact ke GitHub LFS
       env:
         TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        git config --global user.name "Github Action"
+        git config --global user.name "GitHub Action"
         git config --global user.email "actions@github.com"
 
         git lfs track "MLProject/saved_model/random_forest_model.pkl"
         git add .gitattributes
         git add MLProject/saved_model/random_forest_model.pkl || true
-        git diff --cached --quiet || git commit -m "add retrained model artifact (LFS)"
 
+        # Commit jika ada perubahan
+        git diff --cached --quiet || git commit -m "Add retrained model artifact (LFS)"
+
+        # Set remote dengan token dan force push untuk menghindari non-fast-forward
         git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
-        git push origin HEAD:${{ github.ref_name }}
+        git push origin HEAD:${{ github.ref_name }} --force
 
+    # 8️⃣ Login Docker Hub
+    - name: Login to DockerHub
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      run: |
+        echo "${DOCKERHUB_PASSWORD}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+
+    # 9️⃣ Build Docker image
     - name: Build Docker Image
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/msml_popo_zakaria:latest .
-      
-    - name: Login to DockerHub
-      run: |
-        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/msml_popo_zakaria:latest MLProject
 
+    # 🔟 Push Docker image
     - name: Push Docker Image
       run: |
-        docker push ${{ secrets.DOCKER_USERNAME }}/msml_popo_zakaria:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/msml_popo_zakaria:latest
