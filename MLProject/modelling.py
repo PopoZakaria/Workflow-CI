@@ -1,14 +1,17 @@
 import joblib # type: ignore
-import mlflow
+import mlflow # type: ignore
 import numpy as np 
+import os
 from sklearn.ensemble import RandomForestRegressor   # type: ignore
 from sklearn.metrics import mean_squared_error, r2_score # type: ignore
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Load dataset
-x_train = np.load(r'D:\Dicoding\Submission MSML\MLProject\moviesRatingDataset_Processed\x_train.npy')
-y_train = np.load(r'D:\Dicoding\Submission MSML\MLProject\moviesRatingDataset_Processed\y_train.npy')
-x_val = np.load(r'D:\Dicoding\Submission MSML\MLProject\moviesRatingDataset_Processed\x_val.npy')
-y_val = np.load(r'D:\Dicoding\Submission MSML\MLProject\moviesRatingDataset_Processed\y_val.npy')
+x_train = np.load(os.path.join(BASE_DIR, "moviesRatingDataset_Processed", "x_train.npy"))
+y_train = np.load(os.path.join(BASE_DIR, "moviesRatingDataset_Processed", "y_train.npy"))
+x_val = np.load(os.path.join(BASE_DIR, "moviesRatingDataset_Processed", "x_val.npy"))
+y_val = np.load(os.path.join(BASE_DIR, "moviesRatingDataset_Processed", "y_val.npy"))
 
 # training and logging with MLflow
 with mlflow.start_run(run_name="RandomForestRegressor") as run:
